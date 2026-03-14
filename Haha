@@ -1,0 +1,355 @@
+-- Modern Trading GUI Script
+-- Features: Freeze Trade (ON/OFF), Force Accept (ON/OFF), Draggable
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
+local TitleBar = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel")
+local TitleCorner = Instance.new("UICorner")
+local CloseButton = Instance.new("TextButton")
+local Divider = Instance.new("Frame")
+
+-- Freeze Trade Elements
+local FreezeFrame = Instance.new("Frame")
+local FreezeCorner = Instance.new("UICorner")
+local FreezeLabel = Instance.new("TextLabel")
+local FreezeStatus = Instance.new("TextLabel")
+local FreezeToggle = Instance.new("TextButton")
+local FreezeToggleCorner = Instance.new("UICorner")
+
+-- Force Accept Elements
+local ForceFrame = Instance.new("Frame")
+local ForceCorner = Instance.new("UICorner")
+local ForceLabel = Instance.new("TextLabel")
+local ForceStatus = Instance.new("TextLabel")
+local ForceToggle = Instance.new("TextButton")
+local ForceToggleCorner = Instance.new("UICorner")
+
+-- Footer
+local FooterLabel = Instance.new("TextLabel")
+
+-- State
+local freezeEnabled = false
+local forceEnabled = false
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+-- Setup ScreenGui
+ScreenGui.Name = "TradingGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Main Frame (semi-transparent dark)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 300, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -130)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 20)
+MainFrame.BackgroundTransparency = 0.15
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+UICorner.CornerRadius = UDim.new(0, 16)
+UICorner.Parent = MainFrame
+
+UIStroke.Color = Color3.fromRGB(100, 80, 255)
+UIStroke.Thickness = 1.5
+UIStroke.Transparency = 0.3
+UIStroke.Parent = MainFrame
+
+-- Gradient background effect
+local Gradient = Instance.new("UIGradient")
+Gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 15, 40)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 25))
+})
+Gradient.Rotation = 135
+Gradient.Parent = MainFrame
+
+-- Title Bar
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 50)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(80, 50, 200)
+TitleBar.BackgroundTransparency = 0.3
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+TitleCorner.CornerRadius = UDim.new(0, 16)
+TitleCorner.Parent = TitleBar
+
+local TitleGrad = Instance.new("UIGradient")
+TitleGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 60, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 30, 180))
+})
+TitleGrad.Rotation = 90
+TitleGrad.Parent = TitleBar
+
+-- Title Text
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(1, -50, 1, 0)
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "⚡ Trade Manager"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 18
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+-- Close Button
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 28, 0, 28)
+CloseButton.Position = UDim2.new(1, -38, 0.5, -14)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 80)
+CloseButton.BackgroundTransparency = 0.2
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 13
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.BorderSizePixel = 0
+CloseButton.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseButton
+
+-- Divider
+Divider.Size = UDim2.new(0.85, 0, 0, 1)
+Divider.Position = UDim2.new(0.075, 0, 0, 58)
+Divider.BackgroundColor3 = Color3.fromRGB(100, 80, 255)
+Divider.BackgroundTransparency = 0.6
+Divider.BorderSizePixel = 0
+Divider.Parent = MainFrame
+
+-- ============ FREEZE TRADE CARD ============
+FreezeFrame.Name = "FreezeFrame"
+FreezeFrame.Size = UDim2.new(0.88, 0, 0, 70)
+FreezeFrame.Position = UDim2.new(0.06, 0, 0, 70)
+FreezeFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 45)
+FreezeFrame.BackgroundTransparency = 0.2
+FreezeFrame.BorderSizePixel = 0
+FreezeFrame.Parent = MainFrame
+
+FreezeCorner.CornerRadius = UDim.new(0, 12)
+FreezeCorner.Parent = FreezeFrame
+
+local FreezeStroke = Instance.new("UIStroke")
+FreezeStroke.Color = Color3.fromRGB(80, 60, 200)
+FreezeStroke.Thickness = 1
+FreezeStroke.Transparency = 0.5
+FreezeStroke.Parent = FreezeFrame
+
+FreezeLabel.Name = "FreezeLabel"
+FreezeLabel.Size = UDim2.new(0.6, 0, 0.5, 0)
+FreezeLabel.Position = UDim2.new(0, 12, 0, 0)
+FreezeLabel.BackgroundTransparency = 1
+FreezeLabel.Text = "❄️  Freeze Trade"
+FreezeLabel.TextColor3 = Color3.fromRGB(220, 210, 255)
+FreezeLabel.TextSize = 15
+FreezeLabel.Font = Enum.Font.GothamBold
+FreezeLabel.TextXAlignment = Enum.TextXAlignment.Left
+FreezeLabel.Parent = FreezeFrame
+
+FreezeStatus.Name = "FreezeStatus"
+FreezeStatus.Size = UDim2.new(0.6, 0, 0.4, 0)
+FreezeStatus.Position = UDim2.new(0, 12, 0.55, 0)
+FreezeStatus.BackgroundTransparency = 1
+FreezeStatus.Text = "Status: OFF"
+FreezeStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+FreezeStatus.TextSize = 11
+FreezeStatus.Font = Enum.Font.Gotham
+FreezeStatus.TextXAlignment = Enum.TextXAlignment.Left
+FreezeStatus.Parent = FreezeFrame
+
+FreezeToggle.Name = "FreezeToggle"
+FreezeToggle.Size = UDim2.new(0, 72, 0, 32)
+FreezeToggle.Position = UDim2.new(1, -84, 0.5, -16)
+FreezeToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+FreezeToggle.Text = "OFF"
+FreezeToggle.TextColor3 = Color3.fromRGB(180, 180, 200)
+FreezeToggle.TextSize = 13
+FreezeToggle.Font = Enum.Font.GothamBold
+FreezeToggle.BorderSizePixel = 0
+FreezeToggle.Parent = FreezeFrame
+
+FreezeToggleCorner.CornerRadius = UDim.new(0, 10)
+FreezeToggleCorner.Parent = FreezeToggle
+
+-- ============ FORCE ACCEPT CARD ============
+ForceFrame.Name = "ForceFrame"
+ForceFrame.Size = UDim2.new(0.88, 0, 0, 70)
+ForceFrame.Position = UDim2.new(0.06, 0, 0, 152)
+ForceFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 45)
+ForceFrame.BackgroundTransparency = 0.2
+ForceFrame.BorderSizePixel = 0
+ForceFrame.Parent = MainFrame
+
+ForceCorner.CornerRadius = UDim.new(0, 12)
+ForceCorner.Parent = ForceFrame
+
+local ForceStroke = Instance.new("UIStroke")
+ForceStroke.Color = Color3.fromRGB(80, 60, 200)
+ForceStroke.Thickness = 1
+ForceStroke.Transparency = 0.5
+ForceStroke.Parent = ForceFrame
+
+ForceLabel.Name = "ForceLabel"
+ForceLabel.Size = UDim2.new(0.6, 0, 0.5, 0)
+ForceLabel.Position = UDim2.new(0, 12, 0, 0)
+ForceLabel.BackgroundTransparency = 1
+ForceLabel.Text = "✅  Force Accept"
+ForceLabel.TextColor3 = Color3.fromRGB(220, 210, 255)
+ForceLabel.TextSize = 15
+ForceLabel.Font = Enum.Font.GothamBold
+ForceLabel.TextXAlignment = Enum.TextXAlignment.Left
+ForceLabel.Parent = ForceFrame
+
+ForceStatus.Name = "ForceStatus"
+ForceStatus.Size = UDim2.new(0.6, 0, 0.4, 0)
+ForceStatus.Position = UDim2.new(0, 12, 0.55, 0)
+ForceStatus.BackgroundTransparency = 1
+ForceStatus.Text = "Status: OFF"
+ForceStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+ForceStatus.TextSize = 11
+ForceStatus.Font = Enum.Font.Gotham
+ForceStatus.TextXAlignment = Enum.TextXAlignment.Left
+ForceStatus.Parent = ForceFrame
+
+ForceToggle.Name = "ForceToggle"
+ForceToggle.Size = UDim2.new(0, 72, 0, 32)
+ForceToggle.Position = UDim2.new(1, -84, 0.5, -16)
+ForceToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+ForceToggle.Text = "OFF"
+ForceToggle.TextColor3 = Color3.fromRGB(180, 180, 200)
+ForceToggle.TextSize = 13
+ForceToggle.Font = Enum.Font.GothamBold
+ForceToggle.BorderSizePixel = 0
+ForceToggle.Parent = ForceFrame
+
+ForceToggleCorner.CornerRadius = UDim.new(0, 10)
+ForceToggleCorner.Parent = ForceToggle
+
+-- Footer
+FooterLabel.Name = "FooterLabel"
+FooterLabel.Size = UDim2.new(1, 0, 0, 22)
+FooterLabel.Position = UDim2.new(0, 0, 1, -26)
+FooterLabel.BackgroundTransparency = 1
+FooterLabel.Text = "v1.0  •  Trade Manager"
+FooterLabel.TextColor3 = Color3.fromRGB(100, 90, 140)
+FooterLabel.TextSize = 10
+FooterLabel.Font = Enum.Font.Gotham
+FooterLabel.TextXAlignment = Enum.TextXAlignment.Center
+FooterLabel.Parent = MainFrame
+
+-- ============ FUNCTIONS ============
+
+local function animateToggle(button, statusLabel, enabled)
+    local TweenService = game:GetService("TweenService")
+    if enabled then
+        button.Text = "ON"
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        statusLabel.Text = "Status: ON"
+        statusLabel.TextColor3 = Color3.fromRGB(80, 255, 140)
+        TweenService:Create(button, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {
+            BackgroundColor3 = Color3.fromRGB(60, 200, 100)
+        }):Play()
+    else
+        button.Text = "OFF"
+        button.TextColor3 = Color3.fromRGB(180, 180, 200)
+        statusLabel.Text = "Status: OFF"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        TweenService:Create(button, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+        }):Play()
+    end
+end
+
+-- Freeze Toggle
+FreezeToggle.MouseButton1Click:Connect(function()
+    freezeEnabled = not freezeEnabled
+    animateToggle(FreezeToggle, FreezeStatus, freezeEnabled)
+    -- Add your freeze trade logic here
+    if freezeEnabled then
+        print("[Trade Manager] Freeze Trade: ENABLED")
+    else
+        print("[Trade Manager] Freeze Trade: DISABLED")
+    end
+end)
+
+-- Force Accept Toggle
+ForceToggle.MouseButton1Click:Connect(function()
+    forceEnabled = not forceEnabled
+    animateToggle(ForceToggle, ForceStatus, forceEnabled)
+    -- Add your force accept logic here
+    if forceEnabled then
+        print("[Trade Manager] Force Accept: ENABLED")
+    else
+        print("[Trade Manager] Force Accept: DISABLED")
+    end
+end)
+
+-- Close Button
+CloseButton.MouseButton1Click:Connect(function()
+    local TweenService = game:GetService("TweenService")
+    TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 0, 0)
+    }):Play()
+    wait(0.25)
+    ScreenGui:Destroy()
+end)
+
+-- Hover effects
+CloseButton.MouseEnter:Connect(function()
+    CloseButton.BackgroundTransparency = 0
+end)
+CloseButton.MouseLeave:Connect(function()
+    CloseButton.BackgroundTransparency = 0.2
+end)
+
+-- ============ DRAGGABLE ============
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or
+       input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Entrance animation
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+local TweenService = game:GetService("TweenService")
+TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 300, 0, 260),
+    Position = UDim2.new(0.5, -150, 0.5, -130)
+}):Play()
+
+print("[Trade Manager] GUI Loaded Successfully!")
